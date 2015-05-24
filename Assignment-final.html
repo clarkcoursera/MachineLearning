@@ -66,21 +66,21 @@ img {
 
 <div id="executive-summary" class="section level3">
 <h3>Executive summary</h3>
-<p>Three models were created to predict the quality of the performance of a prescribed exercise, based on movement sensor data for 52 predictor variables. When the random forest model’s forecast of the actual effectiveness of the exercise technique was assessed against a semi-independent final review dataset of 20 events, the model had an astonishing 100% success rate. One of the random forest algorithms strengths is it combines ‘weak predictors’ to form a ’strong predictor, which may help explain part of this success. Overall, the model can be considered an excellent method to predict given these 52 dependent variables. Given the random forest model’s accuracy, the other two models were effectively discarded. Further work could further identify the most critical of those predictor variables.</p>
+<p>Three models were created to predict the quality of the performance of a prescribed exercise based on 52 predictor variables. The data for these variables was obtained from six movement sensors attached to the body of the person performing the exercise. After the intial assessment steps, the random forest model was considered the most accurate predictive model. When the random forest model was applied to predict 20 semi-independent events, the model had an astonishing 100% success rate. One of the random forest algorithms strengths is it combines numerous ‘weak predictors’ to form ‘strong predictors’, which may help explain part of this success. Overall, the model can be considered an excellent method to predict ‘exercise effectiveness’ given these 52 dependent variables. Further work could further identify the most critical of those predictor variables and how far this accuracy extends.</p>
 </div>
 <div id="background" class="section level3">
 <h3>Background</h3>
-<p>Much of the current personal analysis of exercise, made more readily available by modern devices such as Jawbone Up, Nike FuelBand, and Fitbit, focusses on the quantity of exercise performed, with less attention paid to the ‘quality’ of the exercise performed. In this study, the movements of six participants, who had limited previous experience lifting weights, were captured using accelerometers as they performed barbell lifts with light weights, and a score (from A to E) was given for the ‘correctness’ of the performance of the exercise. This base data was then analysed, and using machine learning functions a model was created to assess the technical competency (ie how well) of each individual’s exercise. The resulting model was then used to predict whether an exercise was correctly performed on an semi-independent testing dataset.</p>
+<p>Much of the current personal analysis of exercise, including data collated by modern devices such as Jawbone Up, Nike FuelBand, and Fitbit, focusses on the quantity of exercise performed, with less attention paid to the ‘quality’ of the exercise performed. In this study, the movements of six participants, who had limited previous experience lifting weights, were captured using accelerometers as they performed barbell lifts with light weights, and a score (from A to E) was given for the ‘correctness’ of the performance of the exercise. This base data was then analysed, and using machine learning functions three models were created to predict the technical competency of the performance of the exercise given various predictor variables (the sensor data). The resulting model was then used to predict whether an exercise was correctly performed on an semi-independent testing dataset.</p>
 <p>The dataset is publically available under the Creative Commons license (CC BY-SA) licence at <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a></p>
 </div>
 <div id="exploratory-data-analysis" class="section level3">
 <h3>Exploratory data analysis</h3>
 <p>First, the original data must be loaded into R</p>
 <pre class="r"><code>mydata&lt;-read.csv(&quot;c:/pml_assignment/ass_train.csv&quot;)</code></pre>
-<p>Then the data table was reviewed by eye to try to identify any superfluous data columns and a simple cleaning process undertaken to remove columns with no data, significant proportion of NA’s, or probable limited predictive value (eg names). The alphabetic results for the accuracy of the exercise (the A to E scoring) was also converted to a form more readily usable by R.</p>
+<p>Then the data table was reviewed by eye to identify any superfluous data columns. A simple cleaning process removed columns with no data, a significant proportion of NA’s, or probable limited predictive value (eg names). The rating for the technical skill with which the exercise was performed (the A to E scoring) was also converted to a form more readily usable by R.</p>
 <pre class="r"><code>mydata$classe &lt;- factor(mydata$classe)
 mydata&lt;-subset(mydata, select = c(8:11, 37:49, 60:68,84:86, 102, 113:124, 140, 151:160))</code></pre>
-<p>The dataset must be split into a training (from which the models are initially constructed) and testing (the dataset used to test the models accuracy before the final review) subsets. The standard 60:40 split has been utilised.</p>
+<p>The initial large dataset must be split into training (from which the models are initially constructed) and testing (the dataset used to test the models accuracy before the final review) subsets. The standard 60:40 split has been utilised.</p>
 <pre class="r"><code>library(caret)
 set.seed(676767)   # for repeatability
 srcData &lt;- createDataPartition(y = mydata$classe, p=0.6,list=FALSE);
@@ -89,7 +89,7 @@ test &lt;- mydata[-srcData,];</code></pre>
 </div>
 <div id="model-selection" class="section level3">
 <h3>Model selection</h3>
-<p>Then the actual models are created. In order to try and ensure the highest possible accuracy in the forecast, three models will be built and assessed for accuracy against the test subset of data. The functions used to create the models will use all 52 available variables. The most accurate model will then be used to predict the exercise quality in the review data. Three models will be created using the random forest, boosted trees and linear discriminant algorithms.</p>
+<p>Then the actual models are created. In order to try and ensure the highest possible accuracy in the forecast, three models will be built and assessed for accuracy against the test subset of data. The functions used to create the models will use all 52 available variables. The most accurate model will then be used to predict the exercise quality in the review data. The three models will be using the random forest, boosted trees and linear discriminant algorithms respectively.</p>
 <pre class="r"><code>library(randomForest)
 rf &lt;- randomForest( classe ~., data=train, ntrees=20)
 library(MASS)
@@ -99,8 +99,8 @@ gbm_model&lt;- gbm(classe ~. ,data= mydata, distribution = &quot;gaussian&quot; 
 </div>
 <div id="initial-review" class="section level3">
 <h3>Initial review</h3>
-<p>Initially, the predictive power of the three models are assessed to identify the best. Basically, here the best model for this dataset (test) is chosen. The models are initially assessed against the original test dataset used to create them.</p>
-<p>For the random forest (rf) model, the result is:</p>
+<p>The predictive power of the three models is first assessed by predicting the exercise effectiveness for the original test dataset used to create them, and checking their accuracy.</p>
+<p>For the random forest (rf) model, the test assessment shows:</p>
 <pre class="r"><code>rf_train &lt;- predict(rf, train)
 print(confusionMatrix(rf_train, train$classe))</code></pre>
 <pre><code>## Confusion Matrix and Statistics
@@ -134,12 +134,12 @@ print(confusionMatrix(rf_train, train$classe))</code></pre>
 ## Detection Rate         0.2843   0.1935   0.1744   0.1639   0.1838
 ## Detection Prevalence   0.2843   0.1935   0.1744   0.1639   0.1838
 ## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000</code></pre>
-<p>Basically, this shows the random forest model to be 100% accurate, with a p-value of effectively 0. Generally a result of this nature would raise concerns over the model (such as it MUST be overfitted), and would render much statistical analysis unreliable (eg ANOVA). However, for this exercise the models results are accepted as feasible, and not an error, subject to later review.</p>
+<p>Basically, this shows the random forest model to be 100% accurate, with a p-value of effectively 0. Generally a result of this nature would raise significant concerns over the model (such as it MUST be overfitting), and would render much statistical analysis unreliable (eg ANOVA). However, for this exercise the model’s results are accepted as feasible, and not an error, subject to later review.</p>
 <p>Given the extremely high predictive power of the random forest model, review of the other models appears futile and so will not be undertaken. Basically, they are extremely unlikely to be as good.</p>
 </div>
 <div id="cross-validation" class="section level3">
 <h3>Cross validation</h3>
-<p>The random forecast model chosen will be the best for the test dastaset, as the model was chosen for exactly that reason. To try and identify, minimise, and possibly remove any inherent errors or overfitting, a cross validation process was undertaken. This will also give an indication as to how the model will evaluate the review (final semi-independent) dataset.</p>
+<p>The random forecast model chosen will be the best for the test dataset, as the model was chosen for exactly that reason. To try and identify, minimise, and possibly remove any inherent errors or overfitting, a cross validation process was undertaken. This will also give an indication as to how the model may evaluate the review (final semi-independent) dataset.</p>
 <pre class="r"><code>rf_test &lt;- predict(rf, test)
 print(confusionMatrix(rf_test, test$classe))</code></pre>
 <pre><code>## Confusion Matrix and Statistics
@@ -173,17 +173,18 @@ print(confusionMatrix(rf_test, test$classe))</code></pre>
 ## Detection Rate         0.2843   0.1918   0.1723   0.1615   0.1837
 ## Detection Prevalence   0.2860   0.1936   0.1747   0.1619   0.1838
 ## Balanced Accuracy      0.9986   0.9946   0.9927   0.9924   0.9996</code></pre>
-<p>The cross validation process shows the model remains extremely accurate when prediciting against the test dataset, with accuracy of 99.36%, and p-value remaining at effectively 0.</p>
-<p>The OOB (out of bag) error rate constructed as the model is built shows roughly an overall error rate of just under 1% (0.99%) for the models trees.</p>
+<p>The cross validation process shows the model remains extremely accurate when predicting against the test dataset, with accuracy of 99.36%, and p-value remaining at effectively 0.</p>
+<p>The OOB (out of bag) error rate constructed as the initial rf model was built shows roughly an overall OOB error rate of just under 1% (0.99%) for the models trees.</p>
 <pre class="r"><code>t&lt;- sum(rf$err.rate[1:500,1])/500
 t</code></pre>
 <pre><code>## [1] 0.009903025</code></pre>
-<p>However on the final prediction model, a simple calculation of the total out of sample error rate shows the forecast has shrunk to 0.637%. In part this could be attributable to the random forest’s use of multiple decision trees which minimises overfitting.</p>
+<p>However on the final prediction model, a simple calculation of the total out of sample error rate shows it has shrunk to 0.637%. In part this could be attributable to the random forest’s efficient use of multiple decision trees to minimise overfitting from the individual trees.</p>
 <pre class="r"><code>rf_err &lt;-sum(rf_test != test$classe)
 rf_total &lt;- nrow(test)
 round(rf_err/rf_total,5)</code></pre>
 <pre><code>## [1] 0.00637</code></pre>
-<p>Considering the large number of dependent variables, the low error rate is unusual (eg the accumulated noise over those variables would be expected to be significant). However, based on the analysis it appears reasonable to apply the chosen model to the final semi-independent review dataset.</p>
+<p>Considering the large number of dependent variables, the low error rate is unusual (eg the accumulated noise over those variables would be expected to have some impact).</p>
+<p>However, based on the analysis it appears reasonable to apply the chosen model to the final semi-independent review dataset.</p>
 </div>
 <div id="prediction" class="section level3">
 <h3>Prediction</h3>
@@ -195,7 +196,7 @@ rf_predict</code></pre>
 <pre><code>##  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 
 ##  B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
 ## Levels: A B C D E</code></pre>
-<p>The results are then transferred to a vector array, a separate text file is created for each predicted value and these were assessed to the actual results.</p>
+<p>The results are then transferred to a vector array, a separate text file is created for each predicted value and these were assessed against the actual results.</p>
 <pre class="r"><code>setwd(&quot;c:/pml_assignment/&quot;)                   # set working dir
 answers &lt;- as.vector(rf_review)    # create vector list
 pml_write_files(answers)          
