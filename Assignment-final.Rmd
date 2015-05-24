@@ -1,0 +1,111 @@
+---
+title: "Practical Machine Learning Assignment "
+output: html_document
+---
+
+
+###Executive summary
+Three models were created to predict the quality of the performance of a prescribed exercise, based on movement sensor data for 52 predictor variables.  When the random forest model's forecast of the actual effectiveness of the exercise technique was assessed against a semi-independent final review dataset of 20 events, the model had an astonishing 100% success rate.  One of the random forest algorithms strengths is it combines 'weak predictors' to form a 'strong predictor, which may help explain part of this success.  Overall, the model can be considered an excellent method to predict given these 52 dependent variables.  Given the random forest model's accuracy, the other two models were effectively discarded.  Further work could further identify the most critical of those predictor variables.  
+
+
+###Background
+Much of the current personal analysis of exercise, made more readily available by modern devices such as Jawbone Up, Nike FuelBand, and Fitbit, focusses on the quantity of exercise performed, with less attention paid to the ‘quality’ of the exercise performed.  In this study, the movements of six participants, who had limited previous experience lifting weights, were captured using accelerometers as they performed barbell lifts with light weights, and a score (from A to E) was given for the 'correctness' of the performance of the exercise.  This base data was then analysed, and using machine learning functions a model was created to assess the technical competency (ie how well) of each individual's exercise.  The resulting model was then used to predict whether an exercise was correctly performed on an semi-independent testing dataset.  
+
+The dataset is publically available under the Creative Commons license (CC BY-SA) licence at http://groupware.les.inf.puc-rio.br/har
+
+###Exploratory data analysis
+First, the original data must be loaded into R
+```{r, message = FALSE}
+mydata<-read.csv("c:/pml_assignment/ass_train.csv")
+```
+Then the data table was reviewed by eye to try to identify any superfluous data columns and a simple cleaning process undertaken to remove columns with no data, significant proportion of NA’s, or probable limited predictive value (eg names).  The alphabetic results for the accuracy of the exercise (the A to E scoring) was also converted to a form more readily usable by R.
+```{r}
+mydata$classe <- factor(mydata$classe)
+mydata<-subset(mydata, select = c(8:11, 37:49, 60:68,84:86, 102, 113:124, 140, 151:160))
+```
+
+
+The dataset must be split into a training (from which the models are initially constructed) and testing (the dataset used to test the models accuracy before the final review) subsets.  The standard 60:40 split has been utilised.
+```{r, message = FALSE}
+library(caret)
+set.seed(676767)   # for repeatability
+srcData <- createDataPartition(y = mydata$classe, p=0.6,list=FALSE);
+train <- mydata[srcData,];
+test <- mydata[-srcData,];
+```
+
+
+###Model selection
+Then the actual models are created.  In order to try and ensure the highest possible accuracy in the forecast, three models will be built and assessed for accuracy against the test subset of data.  The functions used to create the models will use all 52 available variables.  The most accurate model will then be used to predict the exercise quality in the review data.   Three models will be created using the random forest,  boosted trees and linear discriminant algorithms.  
+```{r, message = FALSE}
+library(randomForest)
+rf <- randomForest( classe ~., data=train, ntrees=20)
+library(MASS)
+lda1<- lda(classe ~. , train)
+library(gbm)
+gbm_model<- gbm(classe ~. ,data= mydata, distribution = "gaussian" ,n.trees = 30)
+```
+
+###Initial review
+Initially, the predictive power of the three models are assessed to identify the best.  Basically, here the best model for this dataset (test) is chosen.  The models are initially assessed against the original test dataset used to create them.
+
+For the random forest (rf) model, the result is: 
+```{r}
+rf_train <- predict(rf, train)
+print(confusionMatrix(rf_train, train$classe))
+```
+Basically, this shows the random forest model to be 100% accurate, with a p-value of effectively 0.  Generally a result of this nature would raise concerns over the model (such as it MUST be overfitted), and would render much statistical analysis unreliable (eg ANOVA).  However, for this exercise the models results are accepted as feasible, and not an error, subject to later review.
+
+Given the extremely high predictive power of the random forest model, review of the other models appears futile and so will not be undertaken.  Basically, they are extremely unlikely to be as good.
+
+###Cross validation
+The  random forecast model chosen will be the best for the test dastaset, as the model was chosen for exactly that reason.  To try and identify, minimise, and possibly remove any inherent errors or overfitting, a cross validation process was undertaken.  This will also give an indication as to how the model will evaluate the review (final semi-independent) dataset.
+```{r}
+rf_test <- predict(rf, test)
+print(confusionMatrix(rf_test, test$classe))
+```
+
+The cross validation process shows the model remains extremely accurate when prediciting against the test dataset, with accuracy of 99.36%,  and p-value remaining at effectively 0. 
+
+The OOB (out of bag) error rate constructed as the model is built shows roughly an overall error rate of just under 1% (0.99%) for the models trees.  
+```{r}
+t<- sum(rf$err.rate[1:500,1])/500
+t
+```
+However on the final prediction model, a simple calculation of the total out of sample error rate shows the forecast has shrunk to 0.637%.  In part this could be attributable to the random forest's use of multiple decision trees which minimises overfitting.
+```{r}
+rf_err <-sum(rf_test != test$classe)
+rf_total <- nrow(test)
+round(rf_err/rf_total,5)
+```
+
+Considering the large number of dependent variables, the low error rate is unusual (eg the accumulated noise over those variables would be expected to be significant).  However, based on the analysis it appears reasonable to apply the chosen model to the final semi-independent review dataset.  
+
+###Prediction
+This is the final step and can only be undertaken once.  If done more than this, the independent data would effectively become part of the intial dataset as the model will be influenced to fit this data.  
+
+First the independent data file is read into R, then the random forest model is applied, and the resultant predictions shown.
+```{r}
+rev<-read.csv("c:/pml_assignment/ass_review.csv")
+rf_predict <- predict(rf,rev)
+rf_predict
+```
+
+The results are then transferred to a vector array, a separate text file is created for each predicted value and these were assessed to the actual results.  
+
+```{r, eval=FALSE}
+setwd("c:/pml_assignment/")                   # set working dir
+answers <- as.vector(rf_review)    # create vector list
+pml_write_files(answers)          
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+```
+The review showed the model to be 100% accurate, an astonishing hit rate.  It would be interesting to assess the model with a greater number of review results to confirm this accuracy.  As an example, the spread of the allocation of scores from A to E should add some effectively random noise (effectively human error due to over 9,000 judgements required) that the model would be unable to correctly predict.
+
+
+
